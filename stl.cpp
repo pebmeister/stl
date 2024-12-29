@@ -262,7 +262,7 @@ int stl::create_stl_ascii(const char* name)
         z = m_vectors[vertex_index++];
         m_stl_output_file << "  vertex " << x << ' ' << x << ' ' << z << '\n';
 
-        m_stl_ou tput_file << " endloop\n";
+        m_stl_output_file << " endloop\n";
         m_stl_output_file << "endfacet\n";
     }
     m_stl_output_file << "endsolid " << m_name.c_str() << '\n';
