@@ -22,7 +22,7 @@ public:
     std::vector<float> m_normals;
     std::vector<float> m_rgb_color;
     std::streamoff m_size;
-    char m_header[STL_HEADER_SIZE + 1] = { 0 };
+    char m_header[STL_HEADER_SIZE] = { 0 };
 
     stl();
     ~stl();

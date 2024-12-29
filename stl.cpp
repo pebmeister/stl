@@ -294,7 +294,6 @@ char* stl::read_line()
 }
 
 // get the token from the stl file
-// return nullptr when at end of file
 char* stl::get_next_token()
 {
     auto pos = 0ULL;
@@ -304,7 +303,8 @@ char* stl::get_next_token()
     {
         char ch = m_stl_input_file.get();
 
-        if (m_stl_input_file.eof() || ch < 1 || std::isspace(ch)) {
+        if (m_stl_input_file.eof() || ch < 1 || std::isspace(ch)) 
+        {
             if (pos != 0) 
             {
                 break;
