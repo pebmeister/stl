@@ -40,28 +40,28 @@ private:
     enum sti_parse_state
     {
         error,
-        in_solid,
-        in_facet,
-        in_facet_normal,
-        in_facet_vertex_x,
-        in_facet_vertex_y,
-        in_facet_vertex_z,
-        in_outer,
-        in_outer_loop,
-        in_vertex,
-        in_vertex_x,
-        in_vertex_y,
-        in_vertex_z,
-        in_endloop,
-        in_endfacet,
-        in_endsolid
+        solid,
+        facet,
+        facet_normal,
+        facet_vertex_x,
+        facet_vertex_y,
+        facet_vertex_z,
+        outer,
+        outer_loop,
+        vertex,
+        vertex_x,
+        vertex_y,
+        vertex_z,
+        endloop,
+        endfacet,
+        endsolid
     };
 
     std::string m_name;
     std::ifstream m_stl_input_file;
     std::ofstream m_stl_output_file;
     bool m_read_tok = true;
-    sti_parse_state m_cur_state = in_solid;
+    sti_parse_state m_cur_state = solid;
     char m_token[MAX_TOKEN_LEN] = { 0 };
 
     void cleanup();

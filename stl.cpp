@@ -290,12 +290,12 @@ int stl::read_ascii()
                 cleanup();
                 return -1;
 
-            case in_solid:
+            case solid:
                 if (!validate_state("solid")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_facet;
+                m_cur_state = facet;
                 tok = read_line();
                 if (strncmp(tok, "facet", FACET_NAME_LEN) == 0) {
                     m_read_tok = false;
@@ -304,11 +304,11 @@ int stl::read_ascii()
                 solid_Name = tok;
                 break;
 
-            case in_facet:
+            case facet:
                 if (tok != nullptr) {
                     if (strcmp(tok, "endsolid") == 0) {
                         m_read_tok = false;
-                        m_cur_state = in_endsolid;
+                        m_cur_state = endsolid;
                         break;
                     }
                 }
@@ -316,70 +316,70 @@ int stl::read_ascii()
                     result = -1;
                     break;
                 }
-                m_cur_state = in_facet_normal;
+                m_cur_state = facet_normal;
                 break;
 
-            case in_facet_normal:
+            case facet_normal:
                 if (!validate_state("normal")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_facet_vertex_x;
+                m_cur_state = facet_vertex_x;
                 break;
 
-            case in_facet_vertex_x:
-            case in_facet_vertex_y:
-            case in_facet_vertex_z:
+            case facet_vertex_x:
+            case facet_vertex_y:
+            case facet_vertex_z:
                 read_facet_vertex();
                 break;
 
-            case in_outer:
+            case outer:
                 if (!validate_state("outer")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_outer_loop;
+                m_cur_state = outer_loop;
                 break;
 
-            case in_outer_loop:
+            case outer_loop:
                 if (!validate_state("loop")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_vertex;
+                m_cur_state = vertex;
                 break;
 
-            case in_vertex:
+            case vertex:
                 if (!validate_state("vertex")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_vertex_x;
+                m_cur_state = vertex_x;
                 break;
 
-            case in_vertex_x:
-            case in_vertex_y:
-            case in_vertex_z:
+            case vertex_x:
+            case vertex_y:
+            case vertex_z:
                 read_vertex();
                 break;
 
-            case in_endloop:
+            case endloop:
                 if (!validate_state("endloop")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_endfacet;
+                m_cur_state = endfacet;
                 break;
 
-            case in_endfacet:
+            case endfacet:
                 if (!validate_state("endfacet")) {
                     result = -1;
                     break;
                 }
-                m_cur_state = in_facet;
+                m_cur_state = facet;
                 break;
 
-            case in_endsolid:
+            case endsolid:
                 if (!validate_state("endsolid")) {
                     result = -1;
                     break;
@@ -403,16 +403,16 @@ void stl::read_facet_vertex()
     m_normals.push_back(vertex);
 
     switch (m_cur_state) {
-        case in_facet_vertex_x:
-            m_cur_state = in_facet_vertex_y;
+        case facet_vertex_x:
+            m_cur_state = facet_vertex_y;
             break;
 
-        case in_facet_vertex_y:
-            m_cur_state = in_facet_vertex_z;
+        case facet_vertex_y:
+            m_cur_state = facet_vertex_z;
             break;
 
-        case in_facet_vertex_z:
-            m_cur_state = in_outer;
+        case facet_vertex_z:
+            m_cur_state = outer;
             break;
 
         default:
@@ -432,19 +432,19 @@ void stl::read_vertex()
     m_read_tok = true;
 
     switch (m_cur_state) {
-        case in_vertex_x:
-            m_cur_state = in_vertex_y;
+        case vertex_x:
+            m_cur_state = vertex_y;
             break;
 
-        case in_vertex_y:
-            m_cur_state = in_vertex_z;
+        case vertex_y:
+            m_cur_state = vertex_z;
             break;
 
-        case in_vertex_z:
+        case vertex_z:
             m_read_tok = true;
             get_next_token();
             m_read_tok = false;
-            m_cur_state = strcmp(m_token, "endloop") == 0 ? in_endloop : in_vertex;
+            m_cur_state = strcmp(m_token, "endloop") == 0 ? endloop : vertex;
             break;
 
         default:
@@ -610,7 +610,7 @@ bool stl::open_write_ascii()
 // open stl file in selected mode
 bool stl::open_write_common(int mode)
 {
-    // binary file. Close it if open and reopen in binary mode
+    // binary file. Open file in binary mode
     if (m_stl_output_file.is_open()) {
         m_stl_output_file.close();
     }
@@ -641,7 +641,7 @@ void stl::cleanup()
     m_num_triangles = 0;
     m_size = 0;
     m_read_tok = true;
-    m_cur_state = in_solid;
+    m_cur_state = solid;
 }
 
 stl::~stl()
