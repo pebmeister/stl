@@ -27,20 +27,16 @@ std::vector<float> Pyramid_vectors =
     -1, 0, 1        // left front 
 };
 
-std::vector<float> Pyramid_normals
-{
-    0, 0, 0,
-    0, 0, 0,
-    0, 0, 0,
-    0, 0, 0
-};
-
 int main(int argc, char* argv[])
 {
     stl stlfile;        
-    for (auto arg = 1; arg < argc; ++arg)
-    {
+    for (auto arg = 1; arg < argc; ++arg) {
         stlfile.read_stl(argv[arg]);
+        std::cout << "[" << arg << "]  " <<
+            " Triangles " << stlfile.m_num_triangles <<
+            " Vectors " << stlfile.m_vectors.size() <<
+            " Normals " << stlfile.m_normals.size() <<
+            " RGBColors " << stlfile.m_rgb_color.size() << "\n";
     }
 
     stlfile.m_num_triangles = 0;
@@ -50,20 +46,24 @@ int main(int argc, char* argv[])
     memset(stlfile.m_header, 0, STL_HEADER_SIZE);
 
     strcpy(stlfile.m_header, "Pauls Pyramid");
-    stlfile.m_num_triangles = 4;
-    for (auto& v : Pyramid_vectors)
-    {
+    for (auto& v : Pyramid_vectors) {
         stlfile.m_vectors.push_back(v);
     }
-
-    for (auto& v : Pyramid_normals)
-    {
-        stlfile.m_normals.push_back(v);
-    }
+    stlfile.calc_normals();
 
     stlfile.create_stl_binary("pyramid_bin.stl");
     stlfile.read_stl("pyramid_bin.stl");
+    std::cout << "[" << argc + 0 << "]  " <<
+        " Triangles " << stlfile.m_num_triangles <<
+        " Vectors " << stlfile.m_vectors.size() <<
+        " Normals " << stlfile.m_normals.size() <<
+        " RGBColors " << stlfile.m_rgb_color.size() << "\n";
 
     stlfile.create_stl_ascii("pyramid_ascii.stl");
     stlfile.read_stl("pyramid_ascii.stl");
+    std::cout << "[" << argc + 1 << "]  " <<
+        " Triangles " << stlfile.m_num_triangles <<
+        " Vectors " << stlfile.m_vectors.size() <<
+        " Normals " << stlfile.m_normals.size() <<
+        " RGBColors " << stlfile.m_rgb_color.size() << "\n";
 }

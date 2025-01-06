@@ -1,4 +1,3 @@
-//
 // Written by Paul Baxter
 //
 #include <cctype>
@@ -10,8 +9,30 @@
 
 #include "stl.h"
 
-constexpr auto FACET_NAME_LEN = 5;
-constexpr auto VERTEX_PER_TRIANGLE = 3;
+// Binary STL
+//
+// UINT8[80]    – Header                - 80 bytes
+// UINT32       – Number of triangles   - 4 bytes
+//
+// foreach triangle - 50 bytes:
+//    REAL32[3] – Normal vector         - 12 bytes
+//    REAL32[3] – Vertex 1              - 12 bytes
+//    REAL32[3] – Vertex 2              - 12 bytes
+//    REAL32[3] – Vertex 3              - 12 bytes
+//    UINT16    – Attribute byte count  - 2 bytes
+// end
+
+// ascii STL
+//
+// solid name
+// facet normal ni nj nk
+//    outer loop
+//       vertex v1x v1y v1z
+//       vertex v2x v2y v2z
+//       vertex v3x v3y v3z
+//   endloop
+// endfacet
+// endsolid name
 
 // class constructor
 // initialize member variables
@@ -23,7 +44,7 @@ stl::stl()
 
 // read_stl
 // read a stl file 
-// handles binary and ascii versions
+// handles both binary and ascii versions
 int stl::read_stl(const char* name)
 {
     auto result = 0;
@@ -44,7 +65,6 @@ int stl::read_stl(const char* name)
             cleanup();
             return -1;
         }
-
         result = read_binary();
     }
     else {
@@ -53,11 +73,10 @@ int stl::read_stl(const char* name)
         // if the line starts with 'facet' then its an ascii stl
         if (strncmp(m_token, "facet", FACET_NAME_LEN) == 0) {
             m_stl_input_file.seekg(0, std::ios::beg);
-            read_ascii();
+            result = read_ascii();
         }
         else {
-            // the next token MUST be facet
-            // for it to be an ascii stl
+            // the next token MUST be facet for it to be an ascii stl
             get_next_token();
             if (strcmp(m_token, "facet") == 0) {
                 m_stl_input_file.seekg(0, std::ios::beg);
@@ -69,37 +88,20 @@ int stl::read_stl(const char* name)
                     return -1;
                 }
 
-                read_binary();
+                result = read_binary();
             }
         }
     }
     if (m_stl_input_file.is_open()) {
         m_stl_input_file.close();
     }
-    std::cout <<
-        m_name.c_str() <<
-        " triangles [" << m_num_triangles << "]" <<
-        " vectors [" << m_vectors.size() << "]" <<
-        " normals [" << m_normals.size() << "]" <<
-        " rgb_colors [" << m_rgb_color.size() << "]\n";
-    return 0;
+    return result;
 }
 
-// create a binary stl 
+// create a binary stl
 // caller should set up
 // m_num_triangles, m_vectors, m_normals and m_rgb_color and m_header
-// before calling
-//
-// UINT8[80]    – Header              - 80 bytes
-// UINT32       – Number of triangles - 4 bytes
-//
-// foreach triangle - 50 bytes:
-//    REAL32[3] – Normal vector        - 12 bytes
-//    REAL32[3] – Vertex 1             - 12 bytes
-//    REAL32[3] – Vertex 2             - 12 bytes
-//    REAL32[3] – Vertex 3             - 12 bytes
-//    UINT16    – Attribute byte count - 2 bytes
-// end
+// before calling or use calc_normals()
 //
 int stl::create_stl_binary(const char* name)
 {
@@ -126,56 +128,34 @@ int stl::create_stl_binary(const char* name)
     // write number of triangles
     m_stl_output_file.write(reinterpret_cast<char*>(&m_num_triangles), sizeof(m_num_triangles));
 
-    unsigned long long normal_index = 0;
-    unsigned long long vertex_index = 0;
-    unsigned long long rgb_index = 0;
+    unsigned long long normal_index = 0, vertex_index = 0, rgb_index = 0;
 
     for (uint32_t triangle = 0; triangle < m_num_triangles; triangle++) {
-        float x = 0, y = 0, z = 0;
-
-        x = m_normals[normal_index++];
-        y = m_normals[normal_index++];
-        z = m_normals[normal_index++];
-
-        m_stl_output_file.write(reinterpret_cast<char*>(&x), sizeof(x));
-        m_stl_output_file.write(reinterpret_cast<char*>(&y), sizeof(y));
-        m_stl_output_file.write(reinterpret_cast<char*>(&z), sizeof(z));
-
-        // read 3 vertices
-        for (auto vert = 0; vert < VERTEX_PER_TRIANGLE; vert++) {
-            x = m_vectors[vertex_index++];
-            y = m_vectors[vertex_index++];
-            z = m_vectors[vertex_index++];
-
-            m_stl_output_file.write(reinterpret_cast<char*>(&x), sizeof(x));
-            m_stl_output_file.write(reinterpret_cast<char*>(&y), sizeof(y));
-            m_stl_output_file.write(reinterpret_cast<char*>(&z), sizeof(z));
+        // write normals
+        for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+            auto a = m_normals[normal_index++];
+            m_stl_output_file.write(reinterpret_cast<char*>(&a), sizeof(a));
         }
+        // write 3 vertices
+        for (auto vert = 0; vert < VERTEX_PER_TRIANGLE; vert++) {
+            for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+                auto a = m_vectors[vertex_index++];
+                m_stl_output_file.write(reinterpret_cast<char*>(&a), sizeof(a));
+            }
+        }
+
         uint16_t attribute = 0;
         if (rgb_index + 2 < m_rgb_color.size()) {
-            auto r = static_cast<uint16_t>(round(m_rgb_color[++rgb_index] * 128.0f));
-            auto g = static_cast<uint16_t>(round(m_rgb_color[++rgb_index] * 128.0f));
-            auto b = static_cast<uint16_t>(round(m_rgb_color[++rgb_index] * 128.0f));
+            auto r = static_cast<uint16_t>(round(m_rgb_color[rgb_index++] * 128.0f)) & 0x0F;
+            auto g = static_cast<uint16_t>(round(m_rgb_color[rgb_index++] * 128.0f)) & 0x0F;
+            auto b = static_cast<uint16_t>(round(m_rgb_color[rgb_index++] * 128.0f)) & 0x0F;
 
-            attribute |= (r & 0xF);
-            attribute <<= 4;
-            attribute |= (g & 0xF);
-            attribute <<= 4;
-            attribute |= (b & 0xF);
-            attribute <<= 4;
-            attribute |= 0x1;
+            attribute = (r << 12) | (g << 8) | (b << 4) | 0x01;
         }
         m_stl_output_file.write(reinterpret_cast<char*>(&attribute), sizeof(attribute));
     }
 
     if (m_stl_output_file.is_open()) {
-        std::cout <<
-            m_name.c_str() <<
-            " triangles [" << m_num_triangles << "]" <<
-            " vectors [" << m_vectors.size() << "]" <<
-            " normals [" << m_normals.size() << "]" <<
-            " rgb_colors [" << m_rgb_color.size() << "]\n";
-
         m_stl_output_file.close();
     }
     return 0;
@@ -186,20 +166,9 @@ int stl::create_stl_binary(const char* name)
 // m_num_triangles, m_vectors and m_normals
 // before calling
 //
-// solid name
-// facet normal ni nj nk
-//    outer loop
-//       vertex v1x v1y v1z
-//       vertex v2x v2y v2z
-//       vertex v3x v3y v3z
-//   endloop
-// endfacet
-// endsolid name
-//
 int stl::create_stl_ascii(const char* name)
 {
-    long long normal_index = 0;
-    long long vertex_index = 0;
+    long long normal_index = 0, vertex_index = 0;
 
     m_name = std::string(name);
     if (!open_write_ascii()) {
@@ -220,30 +189,22 @@ int stl::create_stl_ascii(const char* name)
 
     m_stl_output_file << "solid " << m_name << '\n';
     for (auto triangle = 0u; triangle < m_num_triangles; ++triangle) {
-        float x, y, z;
 
-        x = m_normals[normal_index++];
-        y = m_normals[normal_index++];
-        z = m_normals[normal_index++];
-        m_stl_output_file << "facet normal " << x << ' ' << x << ' ' << z << '\n';
+        m_stl_output_file << "facet normal";
+        for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+            m_stl_output_file << ' ' << m_normals[normal_index++];
+        }
+        m_stl_output_file << '\n';
 
         m_stl_output_file << " outer loop\n";
 
-        x = m_vectors[vertex_index++];
-        y = m_vectors[vertex_index++];
-        z = m_vectors[vertex_index++];
-        m_stl_output_file << "  vertex " << x << ' ' << x << ' ' << z << '\n';
-
-        x = m_vectors[vertex_index++];
-        y = m_vectors[vertex_index++];
-        z = m_vectors[vertex_index++];
-        m_stl_output_file << "  vertex " << x << ' ' << x << ' ' << z << '\n';
-
-        x = m_vectors[vertex_index++];
-        y = m_vectors[vertex_index++];
-        z = m_vectors[vertex_index++];
-        m_stl_output_file << "  vertex " << x << ' ' << x << ' ' << z << '\n';
-
+        for (auto i = 0; i < VERTEX_PER_TRIANGLE; ++i) {
+            m_stl_output_file << "  vertex";
+            for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+                m_stl_output_file << ' ' << m_vectors[vertex_index++];
+            }
+            m_stl_output_file << '\n';
+        }
         m_stl_output_file << " endloop\n";
         m_stl_output_file << "endfacet\n";
     }
@@ -310,17 +271,6 @@ bool stl::validate_state(const char* tok)
 }
 
 // Read an ascii stl file
-//
-// solid name
-// facet normal ni nj nk
-//    outer loop
-//       vertex v1x v1y v1z
-//       vertex v2x v2y v2z
-//       vertex v3x v3y v3z
-//   endloop
-// endfacet
-// endsolid name
-//
 int stl::read_ascii()
 {
     auto result = 0;
@@ -506,19 +456,7 @@ void stl::read_vertex()
 }
 
 //
-// read_binary
-//
-// UINT8[80]    – Header                 -     80 bytes
-// UINT32       – Number of triangles    -      4 bytes
-//
-// foreach triangle                      -      50 bytes:
-//      REAL32[3] – Normal vector        -      12 bytes
-//      REAL32[3] – Vertex 1             -      12 bytes
-//      REAL32[3] – Vertex 2             -      12 bytes
-//      REAL32[3] – Vertex 3             -      12 bytes
-//      UINT16    – Attribute byte count -      2 bytes
-// end
-//
+// read_binary stl
 int stl::read_binary()
 {
     auto result = 0;
@@ -542,28 +480,21 @@ int stl::read_binary()
     }
 
     for (uint32_t triangle = 0; triangle < m_num_triangles; triangle++) {
-        float x = 0, y = 0, z = 0;
+        float a = 0;
 
         // read normal vector
-        m_stl_input_file.read(reinterpret_cast<char*>(&x), sizeof(x));
-        m_stl_input_file.read(reinterpret_cast<char*>(&y), sizeof(y));
-        m_stl_input_file.read(reinterpret_cast<char*>(&z), sizeof(z));
-
-        m_normals.push_back(x);
-        m_normals.push_back(y);
-        m_normals.push_back(z);
+        for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+            m_stl_input_file.read(reinterpret_cast<char*>(&a), sizeof(a));
+            m_normals.push_back(a);
+        }
 
         // read 3 vertices
         for (auto vert = 0; vert < VERTEX_PER_TRIANGLE; vert++) {
             // read vertex
-
-            m_stl_input_file.read(reinterpret_cast<char*>(&x), sizeof(x));
-            m_stl_input_file.read(reinterpret_cast<char*>(&y), sizeof(y));
-            m_stl_input_file.read(reinterpret_cast<char*>(&z), sizeof(z));
-
-            m_vectors.push_back(x);
-            m_vectors.push_back(y);
-            m_vectors.push_back(z);
+            for (auto ax = 0; ax < AXIS_PER_VERTEX; ++ax) {
+                m_stl_input_file.read(reinterpret_cast<char*>(&a), sizeof(a));
+                m_vectors.push_back(a);
+            }
         }
 
         // read attribute
@@ -571,23 +502,20 @@ int stl::read_binary()
         uint16_t attribute = 0;
         m_stl_input_file.read(reinterpret_cast<char*>(&attribute), sizeof(attribute));
 
-        uint16_t b = attribute & 0xF;
-        attribute >>= 4;
-        uint16_t g = attribute & 0xF;
-        attribute >>= 4;
-        uint16_t r = attribute & 0xF;
-        attribute >>= 4;
-        auto valid = attribute & 0x1;
+        uint16_t b = attribute & 0x000F;
+        uint16_t g = attribute & 0x00F0 >> 4;
+        uint16_t r = attribute & 0x0F00 >> 8;
+        auto valid = attribute & 0x1000 >> 12;
 
         if (valid) {
-            //  convert rgb values to 0 - 1
+            //  convert rgb values to range 0 - 1
             constexpr float mask = 0x0F;
             m_rgb_color.push_back(static_cast<float>(r) / mask);
             m_rgb_color.push_back(static_cast<float>(g) / mask);
             m_rgb_color.push_back(static_cast<float>(b) / mask);
         }
     }
-
+     
     auto pos = m_stl_input_file.tellg();
     m_stl_input_file.close();
 
@@ -595,6 +523,42 @@ int stl::read_binary()
         std::cout << m_name.c_str() << " unexpected data at and of file.";
     }
     return result;
+}
+
+// Calculate the normals of
+// the triangles
+//
+void stl::calc_normals()
+{
+    auto n = m_vectors.size();
+    m_num_triangles = static_cast<uint16_t>(n) / (VERTEX_PER_TRIANGLE * AXIS_PER_VERTEX);
+
+    if (m_num_triangles < 1) {
+        return;
+    }
+    m_normals.clear();
+    size_t index = 0;
+    for (auto tri = 0U; tri < m_num_triangles; ++tri) {
+        auto p0x = m_vectors[index++];
+        auto p0y = m_vectors[index++];
+        auto p0z = m_vectors[index++];
+        auto p1x = m_vectors[index++];
+        auto p1y = m_vectors[index++];
+        auto p1z = m_vectors[index++];
+        auto p2x = m_vectors[index++];
+        auto p2y = m_vectors[index++];
+        auto p2z = m_vectors[index++];
+
+        auto x = (p1y - p0y) * (p1z + p0z) + (p2y - p1y) * (p2z + p1z) + (p0y - p2y) * (p0z + p2z);
+        auto y = (p1z - p0z) * (p1x + p0x) + (p2z - p1z) * (p2x + p1x) + (p0z - p2z) * (p0x + p2x);
+        auto z = (p1x - p0x) * (p1y + p0y) + (p2x - p1x) * (p2y + p1y) + (p0x - p2x) * (p0y + p2y);
+
+        auto distance = sqrt(x * x + y * y + z * z);
+        
+        m_normals.push_back(x / distance);
+        m_normals.push_back(y / distance);
+        m_normals.push_back(z / distance);
+    }
 }
 
 // open or repopen stl file in binary mode
@@ -631,7 +595,7 @@ bool stl::open_read_common(int mode)
     return true;
 }
 
-// open or repopen stl file in binary mode
+// open stl file in binary mode
 bool stl::open_write_binary()
 {
     return open_write_common(std::ios::binary | std::ios::trunc);
@@ -643,7 +607,7 @@ bool stl::open_write_ascii()
     return open_write_common(std::ios::trunc);
 }
 
-// open or repopen stl file in selected mode
+// open stl file in selected mode
 bool stl::open_write_common(int mode)
 {
     // binary file. Close it if open and reopen in binary mode
@@ -655,12 +619,11 @@ bool stl::open_write_common(int mode)
         std::cout << "Unable to open stl output file " << m_name.c_str() << ".\n";
         return false;
     }
-
     return true;
 } 
 
 // cleanup
-// close files if open
+// close all files that are open
 // intialize member variables
 void stl::cleanup()
 {

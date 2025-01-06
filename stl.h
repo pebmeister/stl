@@ -13,6 +13,9 @@ constexpr int STL_HEADER_SIZE = 80U;
 constexpr int STL_TRIANGLE_SIZE = 50;
 constexpr int MAX_TOKEN_LEN = 1024;
 constexpr int MIN_STL_LENGTH = 6;
+constexpr int FACET_NAME_LEN = 5;
+constexpr int VERTEX_PER_TRIANGLE = 3;
+constexpr int AXIS_PER_VERTEX = 3;
 
 class stl
 {
@@ -30,6 +33,7 @@ public:
     int read_stl(const char* name);
     int create_stl_binary(const char* name);
     int create_stl_ascii(const char* name);
+    void calc_normals();
 
 private:
 
