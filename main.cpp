@@ -1,8 +1,21 @@
 // main.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
 #include <iostream>
+#include <iomanip>
 #include "stl.h"
+
+// return the root name if a file
+static const char* short_name(const char* name)
+{
+    auto len = strlen(name);
+    auto p = &name[len];
+    while (p > name) {
+        if (*p == '\\' || *p == '/')
+            return p + 1;
+        p--;
+    }
+    return name;
+}
 
 std::vector<float> Pyramid_vectors =
 {
@@ -32,7 +45,7 @@ int main(int argc, char* argv[])
     stl stlfile;        
     for (auto arg = 1; arg < argc; ++arg) {
         stlfile.read_stl(argv[arg]);
-        std::cout << "[" << arg << "]  " <<
+        std::cout << "[" << std::setw(20) << short_name(argv[arg]) << "]  " <<
             " Triangles " << stlfile.m_num_triangles <<
             " Vectors " << stlfile.m_vectors.size() <<
             " Normals " << stlfile.m_normals.size() <<
@@ -53,7 +66,7 @@ int main(int argc, char* argv[])
 
     stlfile.create_stl_binary("pyramid_bin.stl");
     stlfile.read_stl("pyramid_bin.stl");
-    std::cout << "[" << argc + 0 << "]  " <<
+    std::cout << "[" << std::setw(20) << "pyramid_bin.stl" << "]  " <<
         " Triangles " << stlfile.m_num_triangles <<
         " Vectors " << stlfile.m_vectors.size() <<
         " Normals " << stlfile.m_normals.size() <<
@@ -61,7 +74,7 @@ int main(int argc, char* argv[])
 
     stlfile.create_stl_ascii("pyramid_ascii.stl");
     stlfile.read_stl("pyramid_ascii.stl");
-    std::cout << "[" << argc + 1 << "]  " <<
+    std::cout << "[" << std::setw(20) << "pyramid_ascii.stl" << "]  " <<
         " Triangles " << stlfile.m_num_triangles <<
         " Vectors " << stlfile.m_vectors.size() <<
         " Normals " << stlfile.m_normals.size() <<
