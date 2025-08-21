@@ -11,15 +11,15 @@
 
 // Binary STL
 //
-// UINT8[80]    – Header                - 80 bytes
-// UINT32       – Number of triangles   - 4 bytes
+// UINT8[80]    â€“ Header                - 80 bytes
+// UINT32       â€“ Number of triangles   - 4 bytes
 //
 // foreach triangle - 50 bytes:
-//    REAL32[3] – Normal vector         - 12 bytes
-//    REAL32[3] – Vertex 1              - 12 bytes
-//    REAL32[3] – Vertex 2              - 12 bytes
-//    REAL32[3] – Vertex 3              - 12 bytes
-//    UINT16    – Attribute byte count  - 2 bytes
+//    REAL32[3] â€“ Normal vector         - 12 bytes
+//    REAL32[3] â€“ Vertex 1              - 12 bytes
+//    REAL32[3] â€“ Vertex 2              - 12 bytes
+//    REAL32[3] â€“ Vertex 3              - 12 bytes
+//    UINT16    â€“ Attribute byte count  - 2 bytes
 // end
 
 // ascii STL
@@ -240,7 +240,7 @@ char* stl::get_next_token()
     m_token[pos] = 0;
 
     while (!m_stl_input_file.eof() && pos + 1 < sizeof(m_token)) {
-        char ch = m_stl_input_file.get();
+        auto ch = m_stl_input_file.get();
 
         if (m_stl_input_file.eof() || std::isspace(ch)) {
             if (pos != 0) {
