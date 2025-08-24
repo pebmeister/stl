@@ -391,7 +391,7 @@ int stl::read_ascii()
         }
     } while (tok != nullptr);
 
-    m_num_triangles = static_cast<int16_t>(m_vectors.size() / 9);
+    m_num_triangles = static_cast<uint32_t>(m_vectors.size() / 9);
     return result;
 }
 
