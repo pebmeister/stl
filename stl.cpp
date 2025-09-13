@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <fstream>
+
 
 #include "stl.h"
 
@@ -570,17 +572,17 @@ bool stl::open_binary()
 // open or repopen stl file in ascii mode
 bool stl::open_ascii()
 {
-    return open_read_common(0);
+    return open_read_common(static_cast<std::ios_base::openmode>(0));
 }
 
 // open or repopen stl file in selected mode
-bool stl::open_read_common(int mode)
+bool stl::open_read_common(std::ios_base::openmode mode)
 {
     // binary file. Close it if open and reopen in selected mode
     if (m_stl_input_file.is_open()) {
         m_stl_input_file.close();
     }
-    m_stl_input_file.open(m_name.c_str(), mode | std::ios::ate);
+    m_stl_input_file.open(m_name.c_str(), static_cast<std::ios_base::openmode>(mode | std::ios::ate));
     if (!m_stl_input_file.is_open()) {
         std::cout << "Unable to open stl input file " << m_name.c_str() << ".\n";
         return false;
@@ -608,13 +610,13 @@ bool stl::open_write_ascii()
 }
 
 // open stl file in selected mode
-bool stl::open_write_common(int mode)
+bool stl::open_write_common(std::ios_base::openmode mode)
 {
     // binary file. Open file in binary mode
     if (m_stl_output_file.is_open()) {
         m_stl_output_file.close();
     }
-    m_stl_output_file.open(m_name.c_str(), mode);
+    m_stl_output_file.open(m_name.c_str(), static_cast<std::ios_base::openmode>(mode));
     if (!m_stl_output_file.is_open()) {
         std::cout << "Unable to open stl output file " << m_name.c_str() << ".\n";
         return false;
