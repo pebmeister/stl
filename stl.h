@@ -120,10 +120,10 @@ private:
     void read_facet_vertex();
     void read_vertex();
     bool validate_state(const char* msg);
-    bool open_read_common(int mode);
+    bool open_read_common(std::ios_base::openmode mode);
     bool open_binary();
     bool open_ascii();
-    bool open_write_common(int mode);
+    bool open_write_common(std::ios_base::openmode mode);
     bool open_write_binary();
     bool open_write_ascii();
 };
