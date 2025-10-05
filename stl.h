@@ -2,130 +2,30 @@
 //
 // Created by Paul Baxter on 11/17/2024.
 //
-
-#ifndef STL_H
-#define STL_H
-
-#include <algorithm>
-#include <cmath>
-
-#include <fstream>
+#pragma once
+#include <cstdint>
 #include <vector>
 
-constexpr int STL_HEADER_SIZE = 80U;
-constexpr int STL_TRIANGLE_SIZE = 50;
-constexpr int MAX_TOKEN_LEN = 1024;
-constexpr int MIN_STL_LENGTH = 6;
-constexpr int FACET_NAME_LEN = 5;
-constexpr int VERTEX_PER_TRIANGLE = 3;
-constexpr int AXIS_PER_VERTEX = 3;
-
-class stl
-{
+class stl {
 public:
-    uint32_t m_num_triangles;
+    // Flattened triangle vertex array: [x0,y0,z0, x1,y1,z1, x2,y2,z2, ...]
     std::vector<float> m_vectors;
-    std::vector<float> m_normals;
+
+    // Optional per-vertex RGB colors (not required by STL format, but kept for compatibility)
     std::vector<float> m_rgb_color;
-    std::streamoff m_size;
-    char m_header[STL_HEADER_SIZE] = { 0 };
 
-    stl();
-    ~stl();
+    // Number of triangles
+    std::uint32_t m_num_triangles = 0;
 
-    int read_stl(const char* name);
-    int create_stl_binary(const char* name);
-    int create_stl_ascii(const char* name);
-    void calc_normals();
+public:
+    // Reads ASCII or Binary STL. Returns 0 on success.
+    // On any error, throws std::runtime_error (no console output).
+    int read_stl(const char* path);
 
-    void normalizeAndCenter(float normal = 100.0)
-    {
-        // First pass: find min and max values for each axis to calculate center and range
-        float minX = m_vectors[0], maxX = m_vectors[0];
-        float minY = m_vectors[1], maxY = m_vectors[1];
-        float minZ = m_vectors[2], maxZ = m_vectors[2];
+    // Centers geometry at origin and normalizes so largest extent == 1.0
+    void normalizeAndCenter();
 
-        for (size_t i = 0; i < m_vectors.size(); i += 3) {
-            minX = std::min(minX, m_vectors[i]);
-            maxX = std::max(maxX, m_vectors[i]);
-
-            minY = std::min(minY, m_vectors[i + 1]);
-            maxY = std::max(maxY, m_vectors[i + 1]);
-
-            minZ = std::min(minZ, m_vectors[i + 2]);
-            maxZ = std::max(maxZ, m_vectors[i + 2]);
-        }
-
-        // Calculate center of the mesh
-        float centerX = (minX + maxX) / 2.0f;
-        float centerY = (minY + maxY) / 2.0f;
-        float centerZ = (minZ + maxZ) / 2.0f;
-
-        // Find the maximum range across all axes for uniform scaling
-        float rangeX = maxX - minX;
-        float rangeY = maxY - minY;
-        float rangeZ = maxZ - minZ;
-        float maxRange = std::max({ rangeX, rangeY, rangeZ });
-
-        if (maxRange == 0.0f) {
-            return;
-        }
-
-        // Normalize and center all vertices
-        float scale = normal / maxRange;  // Scale to fit in range
-
-        for (size_t i = 0; i < m_vectors.size(); i += 3) {
-            // Center by subtracting the center point
-            m_vectors[i] = (m_vectors[i] - centerX) * scale;
-            m_vectors[i + 1] = (m_vectors[i + 1] - centerY) * scale;
-            m_vectors[i + 2] = (m_vectors[i + 2] - centerZ) * scale;
-        }
-        // calc_normals();
-    }
-
-private:
-
-    enum sti_parse_state
-    {
-        error,
-        solid,
-        facet,
-        facet_normal,
-        facet_vertex_x,
-        facet_vertex_y,
-        facet_vertex_z,
-        outer,
-        outer_loop,
-        vertex,
-        vertex_x,
-        vertex_y,
-        vertex_z,
-        endloop,
-        endfacet,
-        endsolid
-    };
-
-    std::string m_name;
-    std::ifstream m_stl_input_file;
-    std::ofstream m_stl_output_file;
-    bool m_read_tok = true;
-    sti_parse_state m_cur_state = solid;
-    char m_token[MAX_TOKEN_LEN] = { 0 };
-
-    void cleanup();
-    int read_binary();
-    int read_ascii();
-    char* get_next_token();
-    char* read_line();
-    void read_facet_vertex();
-    void read_vertex();
-    bool validate_state(const char* msg);
-    bool open_read_common(std::ios_base::openmode mode);
-    bool open_binary();
-    bool open_ascii();
-    bool open_write_common(std::ios_base::openmode mode);
-    bool open_write_binary();
-    bool open_write_ascii();
+    // Clear all data
+    void clear();
 };
 
-#endif
