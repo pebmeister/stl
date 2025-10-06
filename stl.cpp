@@ -1,3 +1,4 @@
+
 // Written by Paul Baxter
 //
 #include <cctype>
@@ -7,21 +8,22 @@
 #include <iostream>
 #include <memory>
 #include <fstream>
-
+#include <stdexcept>
+#include <sstream>
 
 #include "stl.h"
 
 // Binary STL
 //
-// UINT8[80]    – Header                - 80 bytes
-// UINT32       – Number of triangles   - 4 bytes
+// UINT8[80]    � Header                - 80 bytes
+// UINT32       � Number of triangles   - 4 bytes
 //
 // foreach triangle - 50 bytes:
-//    REAL32[3] – Normal vector         - 12 bytes
-//    REAL32[3] – Vertex 1              - 12 bytes
-//    REAL32[3] – Vertex 2              - 12 bytes
-//    REAL32[3] – Vertex 3              - 12 bytes
-//    UINT16    – Attribute byte count  - 2 bytes
+//    REAL32[3] � Normal vector         - 12 bytes
+//    REAL32[3] � Vertex 1              - 12 bytes
+//    REAL32[3] � Vertex 2              - 12 bytes
+//    REAL32[3] � Vertex 3              - 12 bytes
+//    UINT16    � Attribute byte count  - 2 bytes
 // end
 
 // ascii STL
@@ -114,14 +116,14 @@ int stl::create_stl_binary(const char* name)
     }
 
     if (m_num_triangles * 3LL != m_normals.size() || m_vectors.size() != m_normals.size() * 3LL) {
-        std::cout << "Invalid stl data. " <<
-            " triangles [" << m_num_triangles << "]" <<
-            " vectors [" << m_vectors.size() << "]" <<
-            " normals [" << m_normals.size() << "]" <<
-            " rgb_colors [" << m_rgb_color.size() << "]\n";
-
+        std::ostringstream oss;
+        oss << "Invalid stl data. "
+            << " triangles [" << m_num_triangles << "]"
+            << " vectors [" << m_vectors.size() << "]"
+            << " normals [" << m_normals.size() << "]"
+            << " rgb_colors [" << m_rgb_color.size() << "]";
         cleanup();
-        return -1;
+        throw std::runtime_error(oss.str());
     }
 
     // write header
@@ -265,9 +267,8 @@ char* stl::get_next_token()
 bool stl::validate_state(const char* tok)
 {
     if (strcmp(m_token, tok) != 0) {
-        std::cout << m_name.c_str() << " invalid stl file. expected [" << tok << "] but got [" << m_token << "].\n";
         m_cur_state = error;
-        return false;
+        throw std::runtime_error(std::string(m_name) + " invalid stl file. expected [" + std::string(tok) + "] but got [" + std::string(m_token) + "].");
     }
     return true;
 }
@@ -418,10 +419,9 @@ void stl::read_facet_vertex()
             break;
 
         default:
-            std::cout << m_name.c_str() << " invalid stl file. Expected a vertex normal value.\n";
             m_cur_state = error;
             m_read_tok = false;
-            break;
+            throw std::runtime_error(std::string(m_name) + " invalid stl file. Expected a vertex normal value.");
     }
 }
 
@@ -450,10 +450,9 @@ void stl::read_vertex()
             break;
 
         default:
-            std::cout << m_name.c_str() << " invalid stl file. Expected a vertex value.\n";
             m_cur_state = error;
             m_read_tok = false;
-            break;
+            throw std::runtime_error(std::string(m_name) + " invalid stl file. Expected a vertex value.");
     }
 }
 
@@ -463,9 +462,8 @@ int stl::read_binary()
 {
     auto result = 0;
     if (m_size < STL_HEADER_SIZE + sizeof(m_num_triangles)) {
-        std::cout << m_name.c_str() << " invalid stl file.\n";
         cleanup();
-        return -1;
+        throw std::runtime_error(std::string(m_name.c_str()) + " invalid stl file.");
     }
 
     // read header
@@ -476,9 +474,8 @@ int stl::read_binary()
 
     // Check size
     if (static_cast<long long>(STL_HEADER_SIZE + sizeof(int32_t) + static_cast<long long>(m_num_triangles * STL_TRIANGLE_SIZE)) < m_size) {
-        std::cout << m_name.c_str() << " invalid stl file.\n";
         cleanup();
-        return -1;
+        throw std::runtime_error(std::string(m_name.c_str()) + " invalid stl file.");
     }
 
     for (uint32_t triangle = 0; triangle < m_num_triangles; triangle++) {
@@ -522,7 +519,7 @@ int stl::read_binary()
     m_stl_input_file.close();
 
     if (pos != m_size) {
-        std::cout << m_name.c_str() << " unexpected data at and of file.";
+        throw std::runtime_error(std::string(m_name.c_str()) + " unexpected data at and of file.");
     }
     return result;
 }
@@ -584,14 +581,12 @@ bool stl::open_read_common(std::ios_base::openmode mode)
     }
     m_stl_input_file.open(m_name.c_str(), static_cast<std::ios_base::openmode>(mode | std::ios::ate));
     if (!m_stl_input_file.is_open()) {
-        std::cout << "Unable to open stl input file " << m_name.c_str() << ".\n";
-        return false;
+        throw std::runtime_error(std::string("Unable to open stl input file ") + m_name.c_str() + ".");
     }
     // get the size of the file
     m_size = m_stl_input_file.tellg();
     if (m_size < MIN_STL_LENGTH) {
-        std::cout << m_name.c_str() << " invalid stl file.\n";
-        return false;
+        throw std::runtime_error(std::string(m_name.c_str()) + " invalid stl file.");
     }
     m_stl_input_file.seekg(0, std::ios::beg);
     return true;
@@ -618,8 +613,7 @@ bool stl::open_write_common(std::ios_base::openmode mode)
     }
     m_stl_output_file.open(m_name.c_str(), static_cast<std::ios_base::openmode>(mode));
     if (!m_stl_output_file.is_open()) {
-        std::cout << "Unable to open stl output file " << m_name.c_str() << ".\n";
-        return false;
+        throw std::runtime_error(std::string("Unable to open stl output file ") + m_name.c_str() + ".");
     }
     return true;
 } 

@@ -42,9 +42,18 @@ std::vector<float> Pyramid_vectors =
 
 int main(int argc, char* argv[])
 {
-    stl stlfile;        
+    stl stlfile;
     for (auto arg = 1; arg < argc; ++arg) {
-        stlfile.read_stl(argv[arg]);
+        try {
+            stlfile.read_stl(argv[arg]);
+        } catch (const std::exception& ex) {
+            std::cerr << "Error in read_stl: " << ex.what() << std::endl;
+            return 1;
+        } catch (...) {
+            std::cerr << "Unknown error in read_stl." << std::endl;
+            return 1;
+        }
+
         std::cout << "[" << std::setw(20) << short_name(argv[arg]) << "]  " <<
             " Triangles " << stlfile.m_num_triangles <<
             " Vectors " << stlfile.m_vectors.size() <<
@@ -58,22 +67,66 @@ int main(int argc, char* argv[])
     stlfile.m_rgb_color.clear();
     memset(stlfile.m_header, 0, STL_HEADER_SIZE);
 
-    strcpy(stlfile.m_header, "Pauls Pyramid");
-    for (auto& v : Pyramid_vectors) {
-        stlfile.m_vectors.push_back(v);
+    try {
+        strcpy(stlfile.m_header, "Pauls Pyramid");
+        for (auto& v : Pyramid_vectors) {
+            stlfile.m_vectors.push_back(v);
+        }
+        stlfile.calc_normals();
+    } catch (const std::exception& ex) {
+        std::cerr << "Error in pyramid setup or calc_normals: " << ex.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown error in pyramid setup or calc_normals." << std::endl;
+        return 1;
     }
-    stlfile.calc_normals();
 
-    stlfile.create_stl_binary("pyramid_bin.stl");
-    stlfile.read_stl("pyramid_bin.stl");
+    try {
+        stlfile.create_stl_binary("pyramid_bin.stl");
+    } catch (const std::exception& ex) {
+        std::cerr << "Error in create_stl_binary: " << ex.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown error in create_stl_binary." << std::endl;
+        return 1;
+    }
+
+    try {
+        stlfile.read_stl("pyramid_bin.stl");
+    } catch (const std::exception& ex) {
+        std::cerr << "Error in read_stl (pyramid_bin.stl): " << ex.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown error in read_stl (pyramid_bin.stl)." << std::endl;
+        return 1;
+    }
+
     std::cout << "[" << std::setw(20) << "pyramid_bin.stl" << "]  " <<
         " Triangles " << stlfile.m_num_triangles <<
         " Vectors " << stlfile.m_vectors.size() <<
         " Normals " << stlfile.m_normals.size() <<
         " RGBColors " << stlfile.m_rgb_color.size() << "\n";
 
-    stlfile.create_stl_ascii("pyramid_ascii.stl");
-    stlfile.read_stl("pyramid_ascii.stl");
+    try {
+        stlfile.create_stl_ascii("pyramid_ascii.stl");
+    } catch (const std::exception& ex) {
+        std::cerr << "Error in create_stl_ascii: " << ex.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown error in create_stl_ascii." << std::endl;
+        return 1;
+    }
+
+    try {
+        stlfile.read_stl("pyramid_ascii.stl");
+    } catch (const std::exception& ex) {
+        std::cerr << "Error in read_stl (pyramid_ascii.stl): " << ex.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown error in read_stl (pyramid_ascii.stl)." << std::endl;
+        return 1;
+    }
+
     std::cout << "[" << std::setw(20) << "pyramid_ascii.stl" << "]  " <<
         " Triangles " << stlfile.m_num_triangles <<
         " Vectors " << stlfile.m_vectors.size() <<
